@@ -1,6 +1,7 @@
 using HotelOS.Domain.Common;
 using HotelOS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HotelOS.Infrastructure.Persistence;
 
@@ -31,6 +32,14 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
     }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // PostgreSQL 'timestamp with time zone' only accepts UTC DateTimes.
+        // Normalise every DateTime (e.g. client-supplied dates) to UTC.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         ApplyAuditTimestamps();
@@ -54,4 +63,22 @@ public class AppDbContext : DbContext
                 entry.Entity.UpdatedAt = now;
         }
     }
+}
+
+/// <summary>Stores DateTimes as UTC and reads them back tagged as UTC.</summary>
+public class UtcDateTimeConverter : ValueConverter<DateTime, DateTime>
+{
+    public UtcDateTimeConverter() : base(
+        v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+        v => DateTime.SpecifyKind(v, DateTimeKind.Utc))
+    { }
+}
+
+/// <summary>Nullable counterpart of <see cref="UtcDateTimeConverter"/>.</summary>
+public class NullableUtcDateTimeConverter : ValueConverter<DateTime?, DateTime?>
+{
+    public NullableUtcDateTimeConverter() : base(
+        v => v.HasValue ? (v.Value.Kind == DateTimeKind.Utc ? v.Value : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)) : v,
+        v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v)
+    { }
 }
