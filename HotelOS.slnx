@@ -1,11 +1,8 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/HotelOS.Broker/HotelOS.Broker.csproj" />
-    <Project Path="src/HotelOS.Contracts/HotelOS.Contracts.csproj" />
-    <Project Path="src/HotelOS.Dashboard/HotelOS.Dashboard.csproj" />
-    <Project Path="src/HotelOS.Housekeeping/HotelOS.Housekeeping.csproj" />
-    <Project Path="src/HotelOS.Maintenance/HotelOS.Maintenance.csproj" />
-    <Project Path="src/HotelOS.Reception/HotelOS.Reception.csproj" />
-    <Project Path="src/HotelOS.RoomService/HotelOS.RoomService.csproj" />
+    <Project Path="src/HotelOS.Api/HotelOS.Api.csproj" />
+    <Project Path="src/HotelOS.Application/HotelOS.Application.csproj" />
+    <Project Path="src/HotelOS.Domain/HotelOS.Domain.csproj" />
+    <Project Path="src/HotelOS.Infrastructure/HotelOS.Infrastructure.csproj" />
   </Folder>
 </Solution>
