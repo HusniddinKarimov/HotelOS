@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HotelOS — Reception Desk</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--accent:#3182ce;
+        --clean:#1f9d55;--occupied:#3182ce;--dirty:#dd6b20;--cleaning:#805ad5;--maint:#e53e3e;}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:16px 24px;background:#0b1220;border-bottom:1px solid #233;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0} .live{font-size:13px;color:var(--muted)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#475569}.dot.on{background:var(--clean)}
+  main{padding:24px;display:grid;grid-template-columns:360px 1fr;gap:20px;align-items:start}
+  .panel{background:var(--panel);border-radius:10px;padding:18px;margin-bottom:20px}
+  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:9px;border-radius:6px;border:1px solid #334;background:#0b1220;color:#fff;font-size:14px}
+  button{margin-top:14px;width:100%;padding:10px;border:0;border-radius:6px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+  button.ghost{background:#334155}
+  .rooms{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .room{border-radius:8px;padding:10px;color:#fff;min-height:84px;display:flex;flex-direction:column;justify-content:space-between}
+  .room .no{font-weight:700;font-size:16px}.room .meta{font-size:11px;opacity:.9}.room .who{font-size:12px;font-weight:600}
+  .Clean{background:var(--clean)}.Occupied{background:var(--occupied)}.Dirty{background:var(--dirty)}.BeingCleaned{background:var(--cleaning)}.Maintenance{background:var(--maint)}
+  .msg{margin-top:12px;padding:10px;border-radius:6px;font-size:13px;display:none}
+  .msg.ok{background:#14532d;color:#dcfce7;display:block}.msg.err{background:#7f1d1d;color:#fee2e2;display:block}
+  .legend{font-size:11px;color:var(--muted);margin-top:12px}.legend span{margin-right:12px}
+  pre{white-space:pre-wrap;font-size:12px;background:#0b1220;padding:10px;border-radius:6px;margin-top:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛎️ Reception Desk</h1>
+  <nav style="display:flex;gap:16px;font-size:13px">
+    <a href="http://localhost:5001" style="color:#fff;text-decoration:none">Reception</a>
+    <a href="http://localhost:5002" style="color:#94a3b8;text-decoration:none">Housekeeping</a>
+    <a href="http://localhost:5003" style="color:#94a3b8;text-decoration:none">Kitchen</a>
+    <a href="http://localhost:5004" style="color:#94a3b8;text-decoration:none">Maintenance</a>
+    <a href="http://localhost:5005" style="color:#94a3b8;text-decoration:none">Ops</a>
+    <a href="http://localhost:5005/guest.html" style="color:#94a3b8;text-decoration:none">Guest</a>
+  </nav>
+  <div class="live"><span id="dot" class="dot"></span><span id="livetxt">connecting…</span></div>
+</header>
+<main>
+  <div>
+    <section class="panel">
+      <h2>Check in a guest</h2>
+      <label>Guest name</label><input id="ci-name" placeholder="e.g. Alice Smith"/>
+      <label>Room type</label>
+      <select id="ci-type"><option>Single</option><option>Double</option><option>Suite</option><option>Accessible</option></select>
+      <label>Nights</label><input id="ci-nights" type="number" value="1" min="1" max="30"/>
+      <label>Floor preference (optional)</label><input id="ci-floor" type="number" placeholder="1 or 2"/>
+      <label>Proximity (optional)</label>
+      <select id="ci-prox"><option value="">No preference</option><option value="elevator">Near elevator</option><option value="stairs">Near stairs</option></select>
+      <label>Card number (optional)</label><input id="ci-card" placeholder="4111 1111 1111 1234"/>
+      <button onclick="checkIn()">Assign room &amp; check in</button>
+      <div id="ci-msg" class="msg"></div>
+    </section>
+    <section class="panel">
+      <h2>Check out</h2>
+      <label>Room number</label><input id="co-room" type="number" placeholder="e.g. 204"/>
+      <label>Discount % (optional)</label><input id="co-disc" type="number" value="0" min="0" max="100"/>
+      <button class="ghost" onclick="checkOut()">Check out &amp; print bill</button>
+      <div id="co-msg" class="msg"></div>
+      <pre id="co-bill" style="display:none"></pre>
+    </section>
+  </div>
+  <section class="panel">
+    <h2>Room status (live)</h2>
+    <div id="rooms" class="rooms"></div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--clean)"></span>Clean</span>
+      <span><span class="dot" style="background:var(--occupied)"></span>Occupied</span>
+      <span><span class="dot" style="background:var(--dirty)"></span>Dirty</span>
+      <span><span class="dot" style="background:var(--cleaning)"></span>Being cleaned</span>
+      <span><span class="dot" style="background:var(--maint)"></span>Maintenance</span>
+    </div>
+  </section>
+</main>
+<script>
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function refresh(){
+  const rooms=await (await fetch('/rooms')).json();
+  document.getElementById('rooms').innerHTML=rooms.map(r=>`
+    <div class="room ${r.status}">
+      <div><span class="no">${r.number}</span> <span class="meta">${r.type} · F${r.floor}</span></div>
+      <div class="who">${r.occupiedByGuestId?'occupied':r.status}</div>
+    </div>`).join('');
+}
+function show(id,ok,text){const e=document.getElementById(id);e.className='msg '+(ok?'ok':'err');e.textContent=text;}
+async function checkIn(){
+  const body={guestName:val('ci-name'),roomType:val('ci-type'),nights:+val('ci-nights')||1,
+    floorPreference:val('ci-floor')?+val('ci-floor'):null,proximity:val('ci-prox')||null,cardNumber:val('ci-card')||null};
+  const r=await fetch('/checkin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(d.error) return show('ci-msg',false,d.error);
+  if(d.assigned===false) return show('ci-msg',false,`${d.message} Alternatives: ${d.alternativeTypes.join(', ')||'none'}.`);
+  show('ci-msg',true,`✓ ${body.guestName} assigned room ${d.room} (${d.type}, floor ${d.floor}).`);
+  refresh();
+}
+async function checkOut(){
+  const room=+val('co-room'); const disc=(+val('co-disc')||0)/100;
+  const r=await fetch('/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomNumber:room,discountRate:disc})});
+  const d=await r.json();
+  const bill=document.getElementById('co-bill');
+  if(d.error){bill.style.display='none';return show('co-msg',false,d.error);}
+  show('co-msg',true,`✓ Room ${d.roomNumber} checked out. Total £${d.total.toFixed(2)}.`);
+  bill.style.display='block';
+  bill.textContent=`BILL — ${d.guestName} — Room ${d.roomNumber}\n`+
+    d.lines.map(l=>`  ${l.description}  £${l.amount.toFixed(2)}`).join('\n')+
+    `\n  Subtotal £${d.subtotal.toFixed(2)}  Discount £${d.discount.toFixed(2)}  TOTAL £${d.total.toFixed(2)}`;
+  refresh();
+}
+const val=id=>document.getElementById(id).value.trim();
+// live: any broker event triggers a refresh
+function connect(){
+  const ws=new WebSocket(`ws://${location.hostname}:5000/broker`);
+  ws.onopen=()=>{ws.send(JSON.stringify({action:'subscribe',topic:'*'}));setLive(true);};
+  ws.onmessage=()=>refresh();
+  ws.onclose=()=>{setLive(false);setTimeout(connect,1500);};
+}
+function setLive(on){document.getElementById('dot').className='dot'+(on?' on':'');document.getElementById('livetxt').textContent=on?'live':'reconnecting…';}
+refresh();connect();
+</script>
+</body>
+</html>

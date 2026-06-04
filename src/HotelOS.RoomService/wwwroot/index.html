@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HotelOS — Kitchen / Room Service</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--accent:#3182ce;--clean:#1f9d55;}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:16px 24px;background:#0b1220;border-bottom:1px solid #233;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0}.live{font-size:13px;color:var(--muted)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#475569}.dot.on{background:var(--clean)}
+  main{padding:24px;display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+  .panel{background:var(--panel);border-radius:10px;padding:18px}
+  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input{width:100%;padding:9px;border-radius:6px;border:1px solid #334;background:#0b1220;color:#fff}
+  button{margin-top:12px;padding:9px 12px;border:0;border-radius:6px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:13px}
+  .tickets{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .ticket{background:#0b1220;border-radius:8px;padding:14px;border-top:4px solid var(--accent)}
+  .ticket h3{margin:0 0 4px;font-size:15px}.ticket ul{margin:8px 0;padding-left:18px;font-size:13px}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:#334155}
+  .Received{background:#475569}.Preparing{background:#b7791f}.OutForDelivery{background:#3182ce}
+  .full{grid-column:1/-1;width:100%}.empty{color:#64748b;font-size:13px}
+  .msg{margin-top:10px;font-size:13px;color:#fca5a5}
+  .lines{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍳 Kitchen / Room Service</h1>
+  <nav style="display:flex;gap:16px;font-size:13px">
+    <a href="http://localhost:5001" style="color:#94a3b8;text-decoration:none">Reception</a>
+    <a href="http://localhost:5002" style="color:#94a3b8;text-decoration:none">Housekeeping</a>
+    <a href="http://localhost:5003" style="color:#fff;text-decoration:none">Kitchen</a>
+    <a href="http://localhost:5004" style="color:#94a3b8;text-decoration:none">Maintenance</a>
+    <a href="http://localhost:5005" style="color:#94a3b8;text-decoration:none">Ops</a>
+    <a href="http://localhost:5005/guest.html" style="color:#94a3b8;text-decoration:none">Guest</a>
+  </nav>
+  <div class="live"><span id="dot" class="dot"></span><span id="livetxt">connecting…</span></div>
+</header>
+<main>
+  <section class="panel">
+    <h2>Take a phone order</h2>
+    <label>Room number</label><input id="o-room" type="number" placeholder="e.g. 204"/>
+    <label>Item</label><input id="o-name" placeholder="e.g. Coffee"/>
+    <label>Quantity</label><input id="o-qty" type="number" value="1" min="1"/>
+    <label>Unit price (£)</label><input id="o-price" type="number" value="3.50" step="0.5" min="0"/>
+    <button onclick="placeOrder()">Add order</button>
+    <div id="o-msg" class="msg"></div>
+  </section>
+  <section class="panel">
+    <h2>Active orders (live)</h2>
+    <div id="tickets" class="tickets"></div>
+  </section>
+</main>
+<script>
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const next={Received:'Preparing',Preparing:'Out for delivery',OutForDelivery:'Delivered'};
+async function refresh(){
+  const orders=await (await fetch('/orders')).json();
+  document.getElementById('tickets').innerHTML=orders.length?orders.map(o=>`
+    <div class="ticket">
+      <h3>#${o.id} · Room ${o.roomNumber}</h3>
+      <span class="pill ${o.status}">${o.status}</span>
+      <ul>${o.items.map(i=>`<li>${i.quantity}× ${esc(i.name)} <span class="lines">£${i.lineTotal.toFixed(2)}</span></li>`).join('')}</ul>
+      <div class="lines">Total £${o.total.toFixed(2)}</div>
+      ${next[o.status]?`<button onclick="advance('${o.id}')">→ ${next[o.status]}</button>`:''}
+    </div>`).join(''):'<div class="empty">No active orders.</div>';
+}
+async function advance(id){await fetch(`/orders/${id}/advance`,{method:'POST'});refresh();}
+async function placeOrder(){
+  const body={roomNumber:+v('o-room'),items:[{name:v('o-name'),quantity:+v('o-qty')||1,unitPrice:+v('o-price')||0}]};
+  const r=await fetch('/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  document.getElementById('o-msg').textContent=d.error?d.error:'';
+  if(!d.error){document.getElementById('o-name').value='';}
+  refresh();
+}
+const v=id=>document.getElementById(id).value.trim();
+function connect(){
+  const ws=new WebSocket(`ws://${location.hostname}:5000/broker`);
+  ws.onopen=()=>{ws.send(JSON.stringify({action:'subscribe',topic:'*'}));setLive(true);};
+  ws.onmessage=()=>refresh();
+  ws.onclose=()=>{setLive(false);setTimeout(connect,1500);};
+}
+function setLive(on){document.getElementById('dot').className='dot'+(on?' on':'');document.getElementById('livetxt').textContent=on?'live':'reconnecting…';}
+refresh();connect();
+</script>
+</body>
+</html>

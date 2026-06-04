@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>HotelOS — Housekeeping</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--cleaning:#805ad5;--dirty:#dd6b20;--clean:#1f9d55;}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:16px 24px;background:#0b1220;border-bottom:1px solid #233;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0}.live{font-size:13px;color:var(--muted)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#475569}.dot.on{background:var(--clean)}
+  main{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px}
+  .panel{background:var(--panel);border-radius:10px;padding:18px}
+  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .card{background:#0b1220;border-radius:8px;padding:12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;border-left:4px solid var(--dirty)}
+  .card.prog{border-left-color:var(--cleaning)}
+  .card b{font-size:16px}
+  button{padding:8px 12px;border:0;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:13px}
+  .start{background:var(--cleaning)}.done{background:var(--clean)}
+  .empty{color:#64748b;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧹 Housekeeping</h1>
+  <nav style="display:flex;gap:16px;font-size:13px">
+    <a href="http://localhost:5001" style="color:#94a3b8;text-decoration:none">Reception</a>
+    <a href="http://localhost:5002" style="color:#fff;text-decoration:none">Housekeeping</a>
+    <a href="http://localhost:5003" style="color:#94a3b8;text-decoration:none">Kitchen</a>
+    <a href="http://localhost:5004" style="color:#94a3b8;text-decoration:none">Maintenance</a>
+    <a href="http://localhost:5005" style="color:#94a3b8;text-decoration:none">Ops</a>
+    <a href="http://localhost:5005/guest.html" style="color:#94a3b8;text-decoration:none">Guest</a>
+  </nav>
+  <div class="live"><span id="dot" class="dot"></span><span id="livetxt">connecting…</span></div>
+</header>
+<main>
+  <section class="panel">
+    <h2>Awaiting cleaning</h2>
+    <div id="waiting"></div>
+  </section>
+  <section class="panel">
+    <h2>Being cleaned</h2>
+    <div id="prog"></div>
+  </section>
+</main>
+<script>
+async function refresh(){
+  const q=await (await fetch('/queue')).json();
+  document.getElementById('waiting').innerHTML=(q.waiting||[]).length?
+    q.waiting.map(n=>`<div class="card"><b>Room ${n}</b><button class="start" onclick="act('/clean/start',${n})">Start cleaning</button></div>`).join('')
+    :'<div class="empty">Nothing waiting. 🎉</div>';
+  document.getElementById('prog').innerHTML=(q.inProgress||[]).length?
+    q.inProgress.map(n=>`<div class="card prog"><b>Room ${n}</b><button class="done" onclick="act('/clean/done',${n})">Mark clean</button></div>`).join('')
+    :'<div class="empty">No rooms in progress.</div>';
+}
+async function act(url,room){
+  await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomNumber:room})});
+  refresh();
+}
+function connect(){
+  const ws=new WebSocket(`ws://${location.hostname}:5000/broker`);
+  ws.onopen=()=>{ws.send(JSON.stringify({action:'subscribe',topic:'*'}));setLive(true);};
+  ws.onmessage=()=>refresh();
+  ws.onclose=()=>{setLive(false);setTimeout(connect,1500);};
+}
+function setLive(on){document.getElementById('dot').className='dot'+(on?' on':'');document.getElementById('livetxt').textContent=on?'live':'reconnecting…';}
+refresh();connect();
+</script>
+</body>
+</html>
