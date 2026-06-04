@@ -70,11 +70,24 @@ dotnet --version    # should print 10.x
 ./run.ps1
 ```
 
-This starts the broker, all four services and the dashboard. Then open:
+This starts the broker, all four services and the dashboard. Each service now
+serves its **own interactive web UI** — staff can operate the hotel from the
+browser, and guests get their own portal. All pages update live over WebSocket.
 
-> **http://localhost:5005** — access token: **`grandstay2026`**
+| Open in a browser | Who | What they can do |
+|---|---|---|
+| http://localhost:5001 | Receptionist | Check guests in (runs the assignment algorithm), check out & print the bill, watch the live room grid |
+| http://localhost:5002 | Housekeeper | See the cleaning queue, start cleaning, mark rooms clean |
+| http://localhost:5003 | Kitchen | See live order tickets, advance them through their states, take phone orders |
+| http://localhost:5004 | Technician | Report faults, see the priority queue, resolve issues, view technician availability |
+| http://localhost:5005 | Manager | Live read-only operations dashboard (token: **`grandstay2026`**) |
+| http://localhost:5005/guest.html | **Guest** | Log in by room number, order room service from the menu, report a problem, view a live bill |
 
-Press **Ctrl+C** (macOS/Linux) to stop everything.
+Every page has a top nav bar to jump between them. Press **Ctrl+C**
+(macOS/Linux) to stop everything.
+
+> The guest portal calls Reception, Room Service and Maintenance across origins,
+> so the services enable permissive CORS for development.
 
 ### Running a single service manually
 

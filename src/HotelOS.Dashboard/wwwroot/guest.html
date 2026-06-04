@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>GrandStay — Guest Portal</title>
+<style>
+  :root{--bg:#0f172a;--panel:#1e293b;--ink:#e2e8f0;--muted:#94a3b8;--accent:#1f9d55;--gold:#d4a017;}
+  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:16px 24px;background:#0b1220;border-bottom:1px solid #233;display:flex;justify-content:space-between;align-items:center}
+  header h1{font-size:18px;margin:0}.who{font-size:13px;color:var(--muted)}
+  main{padding:24px;max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .panel{background:var(--panel);border-radius:10px;padding:18px}
+  .panel h2{margin:0 0 14px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:10px;border-radius:6px;border:1px solid #334;background:#0b1220;color:#fff;font-size:14px}
+  button{margin-top:12px;padding:10px 14px;border:0;border-radius:6px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:14px}
+  .menu-item{display:flex;align-items:center;justify-content:space-between;background:#0b1220;border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .menu-item .qty{width:60px}
+  .row{display:flex;gap:10px;align-items:center}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:#334155}
+  .Received{background:#475569}.Preparing{background:#b7791f}.OutForDelivery{background:#3182ce}
+  .item{background:#0b1220;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:13px}
+  .total{font-size:22px;font-weight:700;color:var(--gold)}
+  .msg{margin-top:10px;font-size:13px}.msg.ok{color:#86efac}.msg.err{color:#fca5a5}
+  .empty{color:#64748b;font-size:13px}
+  #login{max-width:360px;margin:80px auto;background:var(--panel);padding:28px;border-radius:12px}
+  #login button{width:100%}
+  .full{grid-column:1/-1}
+</style>
+</head>
+<body>
+<div id="login">
+  <h1>🏨 GrandStay Guest Portal</h1>
+  <p style="font-size:13px;color:var(--muted)">Enter your room number to access room service, report an issue, or view your bill.</p>
+  <label>Room number</label><input id="room" type="number" placeholder="e.g. 204"/>
+  <button onclick="login()">Enter</button>
+  <p id="loginErr" class="msg err"></p>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <h1>🏨 GrandStay Guest Portal</h1>
+    <div class="who" id="who"></div>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Order room service</h2>
+      <div id="menu"></div>
+      <button onclick="order()">Place order</button>
+      <div id="orderMsg" class="msg"></div>
+    </section>
+    <section class="panel">
+      <h2>Your bill (live)</h2>
+      <div id="bill"></div>
+    </section>
+    <section class="panel">
+      <h2>Your orders (live)</h2>
+      <div id="orders"></div>
+    </section>
+    <section class="panel">
+      <h2>Report a problem</h2>
+      <label>What's wrong?</label><input id="issueDesc" placeholder="e.g. Air conditioning not working"/>
+      <label>How urgent?</label>
+      <select id="issueUrg"><option>Low</option><option selected>Normal</option><option>High</option><option>Critical</option></select>
+      <button style="background:#e53e3e" onclick="reportIssue()">Send to maintenance</button>
+      <div id="issueMsg" class="msg"></div>
+    </section>
+  </main>
+</div>
+
+<script>
+const HOST=location.hostname;
+const RECEPTION=`http://${HOST}:5001`, ROOMSVC=`http://${HOST}:5003`, MAINT=`http://${HOST}:5004`;
+const MENU=[{name:'Coffee',price:3.5},{name:'Tea',price:3.0},{name:'Bottled Water',price:2.0},
+            {name:'Club Sandwich',price:9.0},{name:'Cheeseburger',price:12.5},{name:'Chocolate Cake',price:5.5}];
+let myRoom=null;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function login(){
+  const room=+document.getElementById('room').value;
+  try{
+    const r=await fetch(`${RECEPTION}/occupancy/${room}`);
+    const d=await r.json();
+    if(!r.ok){document.getElementById('loginErr').textContent=d.error||'Room not available.';return;}
+    myRoom=room;
+    document.getElementById('login').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('who').textContent=`${d.guest} · Room ${d.room} (${d.type})`;
+    renderMenu();refresh();connect();
+  }catch(e){document.getElementById('loginErr').textContent='Cannot reach reception service.';}
+}
+function renderMenu(){
+  document.getElementById('menu').innerHTML=MENU.map((m,i)=>`
+    <div class="menu-item"><span>${m.name} <span style="color:var(--muted)">£${m.price.toFixed(2)}</span></span>
+      <input class="qty" id="q${i}" type="number" min="0" value="0"/></div>`).join('');
+}
+async function order(){
+  const items=MENU.map((m,i)=>({name:m.name,quantity:+document.getElementById('q'+i).value||0,unitPrice:m.price}))
+                  .filter(x=>x.quantity>0);
+  const msg=document.getElementById('orderMsg');
+  if(!items.length){msg.className='msg err';msg.textContent='Select at least one item.';return;}
+  const r=await fetch(`${ROOMSVC}/orders`,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({roomNumber:myRoom,items})});
+  const d=await r.json();
+  if(d.error){msg.className='msg err';msg.textContent=d.error;return;}
+  msg.className='msg ok';msg.textContent=`✓ Order placed (£${d.total.toFixed(2)}). It's on its way!`;
+  MENU.forEach((m,i)=>document.getElementById('q'+i).value=0);
+  refresh();
+}
+async function reportIssue(){
+  const body={roomNumber:myRoom,description:document.getElementById('issueDesc').value,urgency:document.getElementById('issueUrg').value};
+  const r=await fetch(`${MAINT}/issues`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  const msg=document.getElementById('issueMsg');
+  if(d.error){msg.className='msg err';msg.textContent=d.error;return;}
+  msg.className='msg ok';msg.textContent='✓ Reported. Maintenance has been notified.';
+  document.getElementById('issueDesc').value='';
+}
+async function refresh(){
+  // bill
+  try{
+    const b=await (await fetch(`${RECEPTION}/bill/${myRoom}`)).json();
+    if(b.lines){
+      document.getElementById('bill').innerHTML=
+        b.lines.map(l=>`<div class="item">${esc(l.description)} <span style="float:right">£${l.amount.toFixed(2)}</span></div>`).join('')+
+        `<div class="total" style="margin-top:10px">Total £${b.total.toFixed(2)}</div>`;
+    }
+  }catch(e){}
+  // my orders
+  try{
+    const all=await (await fetch(`${ROOMSVC}/orders`)).json();
+    const mine=all.filter(o=>o.roomNumber===myRoom);
+    document.getElementById('orders').innerHTML=mine.length?mine.map(o=>`
+      <div class="item">#${o.id} · <span class="pill ${o.status}">${o.status}</span><br>
+      ${o.items.map(i=>`${i.quantity}× ${esc(i.name)}`).join(', ')} — £${o.total.toFixed(2)}</div>`).join('')
+      :'<div class="empty">No active orders.</div>';
+  }catch(e){}
+}
+function connect(){
+  const ws=new WebSocket(`ws://${HOST}:5000/broker`);
+  ws.onopen=()=>ws.send(JSON.stringify({action:'subscribe',topic:'*'}));
+  ws.onmessage=()=>refresh();
+  ws.onclose=()=>setTimeout(connect,1500);
+}
+document.getElementById('room').addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+</script>
+</body>
+</html>
