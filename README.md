@@ -183,5 +183,18 @@ HotelOS/
 ## 9. Git history
 
 ```
-<run `git log --oneline` and paste the output here before submitting>
+c78a9de docs: add README with architecture, event table and run guide
+51ad19b chore: add one-command launchers and test-scenario script
+d1f154b chore(reception): add default app settings
+cfd1a81 feat(dashboard): live WebSocket operations dashboard with auth
+3947cfc feat(maintenance): binary-heap priority queue and technician dispatch
+5acae87 feat(roomservice): order queue and Received->Delivered state machine
+9b4755e feat(housekeeping): cleaning queue and status-change events
+e031cdd feat(reception): check-in/checkout API and broker integration
+d290687 feat(reception): room assignment algorithm, billing and hotel state
+f7ba499 feat(broker): implement WebSocket topic-based pub/sub broker
+d7858d2 feat(contracts): add input validation, safe error handling and config
+23c5811 feat(contracts): add broker message envelope, topics and events
+dd54a33 feat(contracts): add domain models, enums and staff hierarchy
+66edae6 chore: scaffold solution and add .gitignore
 ```
