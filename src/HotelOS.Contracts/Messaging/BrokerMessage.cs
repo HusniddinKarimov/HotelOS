@@ -40,6 +40,10 @@ public static class Json
 {
     public static readonly JsonSerializerOptions Options = new()
     {
+        // camelCase so payloads pushed over the WebSocket match the browser JS
+        // (r.number, r.status ...). All C# clients share these options, so the
+        // broker round-trip stays internally consistent too.
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
         WriteIndented = false
     };
