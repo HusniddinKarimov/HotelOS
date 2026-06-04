@@ -102,7 +102,8 @@ static async Task SeedRoomsAsync(DashboardState state)
     {
         try
         {
-            var rooms = await http.GetFromJsonAsync<List<Room>>("http://localhost:5001/rooms");
+            // Use the shared options so string enums ("Clean") deserialise correctly.
+            var rooms = await http.GetFromJsonAsync<List<Room>>("http://localhost:5001/rooms", Json.Options);
             if (rooms is not null) { state.SeedRooms(rooms); return; }
         }
         catch { /* Reception not up yet */ }

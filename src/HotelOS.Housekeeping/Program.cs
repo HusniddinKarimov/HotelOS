@@ -11,8 +11,10 @@ using HotelOS.Housekeeping.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5002");
+builder.Services.AddHotelUi();
 var app = builder.Build();
 app.UseSafeErrors();
+app.UseHotelUi();
 
 var board = new CleaningBoard();
 var broker = new BrokerClient(ServiceConfig.BrokerUrl, "housekeeping");
@@ -28,7 +30,7 @@ broker.Subscribe(Topics.RoomVacated, msg =>
 
 await broker.StartAsync(app.Lifetime.ApplicationStopping);
 
-app.MapGet("/", () => "Housekeeping Service up.");
+app.MapGet("/health", () => Results.Ok(new { service = "housekeeping", status = "up" }));
 app.MapGet("/queue", () => Results.Ok(board.Snapshot()));
 
 // Housekeeper starts cleaning a room -> status BeingCleaned.

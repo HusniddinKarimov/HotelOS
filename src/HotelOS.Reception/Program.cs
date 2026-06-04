@@ -15,8 +15,10 @@ using HotelOS.Reception.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5001");
+builder.Services.AddHotelUi();
 var app = builder.Build();
 app.UseSafeErrors();
+app.UseHotelUi();
 
 var state = new HotelState();
 var broker = new BrokerClient(ServiceConfig.BrokerUrl, "reception");
@@ -52,8 +54,28 @@ await broker.StartAsync(app.Lifetime.ApplicationStopping);
 
 // --- HTTP API --------------------------------------------------------------
 
-app.MapGet("/", () => "Reception Service up.");
+app.MapGet("/health", () => Results.Ok(new { service = "reception", status = "up" }));
 app.MapGet("/rooms", () => Results.Ok(state.Snapshot()));
+
+// Current running bill for an occupied room (read-only) — used by guest portal.
+app.MapGet("/bill/{roomNumber:int}", (int roomNumber) =>
+{
+    Validation.RequireRoomNumber(roomNumber);
+    var bill = state.GetRunningBill(roomNumber);
+    return bill is null
+        ? Results.NotFound(new { error = $"Room {roomNumber} is not currently occupied." })
+        : Results.Ok(bill);
+});
+
+// Who is in a room (used by the guest login).
+app.MapGet("/occupancy/{roomNumber:int}", (int roomNumber) =>
+{
+    Validation.RequireRoomNumber(roomNumber);
+    var occ = state.GetOccupancy(roomNumber);
+    return occ is null
+        ? Results.NotFound(new { error = $"Room {roomNumber} is not currently occupied." })
+        : Results.Ok(new { room = roomNumber, guest = occ.Value.guestName, type = occ.Value.type.ToString() });
+});
 
 // Check-in: validate, build the guest, run assignment, announce the result.
 app.MapPost("/checkin", async (CheckInRequest req) =>

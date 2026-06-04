@@ -13,14 +13,16 @@ using HotelOS.Maintenance.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5004");
+builder.Services.AddHotelUi();
 var app = builder.Build();
 app.UseSafeErrors();
+app.UseHotelUi();
 
 var coordinator = new MaintenanceCoordinator();
 var broker = new BrokerClient(ServiceConfig.BrokerUrl, "maintenance");
 await broker.StartAsync(app.Lifetime.ApplicationStopping);
 
-app.MapGet("/", () => "Maintenance Service up.");
+app.MapGet("/health", () => Results.Ok(new { service = "maintenance", status = "up" }));
 app.MapGet("/issues", () => Results.Ok(coordinator.Snapshot()));
 
 // Report a fault. Validates room, description and urgency.

@@ -13,14 +13,16 @@ using HotelOS.RoomService.Domain;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5003");
+builder.Services.AddHotelUi();
 var app = builder.Build();
 app.UseSafeErrors();
+app.UseHotelUi();
 
 var board = new OrderBoard();
 var broker = new BrokerClient(ServiceConfig.BrokerUrl, "roomservice");
 await broker.StartAsync(app.Lifetime.ApplicationStopping);
 
-app.MapGet("/", () => "Room Service up.");
+app.MapGet("/health", () => Results.Ok(new { service = "roomservice", status = "up" }));
 app.MapGet("/orders", () => Results.Ok(board.Active()));
 
 // Place an order. Validates the room and every line item.

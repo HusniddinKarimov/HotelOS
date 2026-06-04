@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HotelOS.Contracts.Messaging;
 
@@ -45,6 +46,9 @@ public static class Json
         // broker round-trip stays internally consistent too.
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
-        WriteIndented = false
+        WriteIndented = false,
+        // Serialise enums as readable strings ("Clean", "Critical") so both the
+        // broker payloads and the service REST responses are UI-friendly.
+        Converters = { new JsonStringEnumConverter() }
     };
 }

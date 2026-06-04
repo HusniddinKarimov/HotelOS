@@ -102,6 +102,32 @@ public sealed class HotelState
         }
     }
 
+    /// <summary>
+    /// Returns the current running bill for an occupied room WITHOUT checking
+    /// out or mutating any state — used by the guest portal to show the tab.
+    /// </summary>
+    public Bill? GetRunningBill(int roomNumber)
+    {
+        lock (_gate)
+        {
+            var room = _rooms.FirstOrDefault(r => r.Number == roomNumber);
+            if (room?.OccupiedByGuestId is null) return null;
+            var guest = _guests[room.OccupiedByGuestId];
+            return BillingService.Calculate(room, guest);
+        }
+    }
+
+    /// <summary>Lightweight view of who occupies a room (for the guest login).</summary>
+    public (string guestName, RoomType type)? GetOccupancy(int roomNumber)
+    {
+        lock (_gate)
+        {
+            var room = _rooms.FirstOrDefault(r => r.Number == roomNumber);
+            if (room?.OccupiedByGuestId is null) return null;
+            return (_guests[room.OccupiedByGuestId].Name, room.Type);
+        }
+    }
+
     /// <summary>Applies a housekeeping status change received from the broker.</summary>
     public void ApplyHousekeepingStatus(int roomNumber, RoomStatus status)
     {
