@@ -1,0 +1,69 @@
+@HotelOS = http://localhost:5080
+
+### Health / info (anonymous)
+GET {{HotelOS}}/
+
+### Login as administrator  — captures the token for the calls below
+# @name login
+POST {{HotelOS}}/api/auth/login
+Content-Type: application/json
+
+{ "username": "admin", "password": "Admin@123" }
+
+### Token captured from the login response
+@token = {{login.response.body.$.accessToken}}
+@refresh = {{login.response.body.$.refreshToken}}
+
+### Current user
+GET {{HotelOS}}/api/auth/me
+Authorization: Bearer {{token}}
+
+### Refresh the access token
+POST {{HotelOS}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refresh}}" }
+
+### Rooms — paged, sorted, filtered
+GET {{HotelOS}}/api/rooms?page=1&pageSize=10&sortBy=number&sortDir=asc
+Authorization: Bearer {{token}}
+
+### Rooms — only Clean rooms on floor 2
+GET {{HotelOS}}/api/rooms?status=Clean&floor=2
+Authorization: Bearer {{token}}
+
+### Create a room (Administrator / HotelManager)
+POST {{HotelOS}}/api/rooms
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "number": 301, "floor": 3, "roomTypeId": 4, "nearElevator": true }
+
+### Dashboard metrics
+GET {{HotelOS}}/api/dashboard
+Authorization: Bearer {{token}}
+
+### List users (Administrator)
+GET {{HotelOS}}/api/users?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Create a user (Administrator)
+POST {{HotelOS}}/api/users
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "username": "jdoe", "email": "jdoe@hotelos.local", "password": "Passw0rd!", "fullName": "Jane Doe", "roleName": "Receptionist" }
+
+### Login as receptionist (to demonstrate RBAC — creating a user should return 403)
+# @name reception
+POST {{HotelOS}}/api/auth/login
+Content-Type: application/json
+
+{ "username": "reception", "password": "Password@123" }
+
+### Receptionist tries to create a user -> 403 Forbidden
+POST {{HotelOS}}/api/users
+Authorization: Bearer {{reception.response.body.$.accessToken}}
+Content-Type: application/json
+
+{ "username": "nope", "email": "nope@hotelos.local", "password": "Passw0rd!", "fullName": "No One", "roleName": "Receptionist" }

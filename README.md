@@ -3,6 +3,7 @@
 A modular-monolith Hotel Management System built with **ASP.NET Core (.NET 10)** following
 **Clean Architecture**, with **Entity Framework Core + PostgreSQL**, **JWT auth + refresh
 tokens + RBAC**, **CQRS (MediatR)**, **FluentValidation**, **SignalR** realtime, and **Serilog**.
+(No Swagger — the API is exercised via the `.http` request file or the React client.)
 
 > The React + TypeScript + Tailwind frontend is added on top of this API (next phase).
 
@@ -42,8 +43,14 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/HotelOS.Api --urls h
 
 On startup the API **applies migrations** and **seeds** roles, room types, demo users and 10 rooms.
 
-- Swagger UI: <http://localhost:5080/swagger>
+- API root (health): <http://localhost:5080/>
 - SignalR hub: `ws://localhost:5080/hubs/dashboard?access_token=<JWT>`
+
+### Testing the API (no Swagger)
+
+Open **`src/HotelOS.Api/HotelOS.Api.http`** in Visual Studio, VS Code (with the *REST Client*
+extension), or Rider, and click *Send Request*. The login request captures the JWT and the
+authorized calls reuse it automatically. Curl snippets are also below.
 
 ## Seeded accounts
 

@@ -9,7 +9,6 @@ using HotelOS.Infrastructure.Persistence;
 using HotelOS.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,41 +67,21 @@ var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>
 builder.Services.AddCors(o => o.AddPolicy("client", p =>
     p.WithOrigins(corsOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
-// --- MVC + Swagger ----------------------------------------------------------
+// --- MVC --------------------------------------------------------------------
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "HotelOS API", Version = "v1" });
-    var scheme = new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter the JWT access token (without the 'Bearer ' prefix).",
-        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-    };
-    c.AddSecurityDefinition("Bearer", scheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement { [scheme] = Array.Empty<string>() });
-});
 
 var app = builder.Build();
 
 // --- Pipeline ---------------------------------------------------------------
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
 app.UseSerilogRequestLogging();
 app.UseCors("client");
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Simple health/info root so the base URL isn't a 404.
+app.MapGet("/", () => Results.Ok(new { service = "HotelOS API", status = "up", version = "1.0" }));
 
 app.MapControllers();
 app.MapHub<DashboardHub>("/hubs/dashboard");
