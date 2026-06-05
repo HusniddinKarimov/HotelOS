@@ -16,6 +16,7 @@ import Billing from './pages/Billing'
 import Reports from './pages/Reports'
 import Users from './pages/Users'
 import Notifications from './pages/Notifications'
+import MyRoom from './pages/MyRoom'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/my-room" element={<MyRoom />} />
               <Route path="/reservations" element={<Reservations />} />
               <Route path="/guests" element={<Guests />} />
               <Route path="/rooms" element={<Rooms />} />

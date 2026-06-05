@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Navigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import type { Dashboard as Dash } from '../lib/types'
+import { ROLES } from '../lib/types'
+import { useAuth } from '../auth/AuthContext'
 import { useRealtime } from '../lib/useRealtime'
 import { PageHeader } from '../components/ui'
 
@@ -14,10 +17,15 @@ function Stat({ label, value, color }: { label: string; value: string | number; 
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
+  const isUser = user?.role === ROLES.User
   const [d, setD] = useState<Dash | null>(null)
   const [feed, setFeed] = useState<string[]>([])
 
-  const load = useCallback(() => { api.get<Dash>('/api/dashboard').then(({ data }) => setD(data)).catch(() => {}) }, [])
+  const load = useCallback(() => {
+    if (isUser) return
+    api.get<Dash>('/api/dashboard').then(({ data }) => setD(data)).catch(() => {})
+  }, [isUser])
   useEffect(() => { load() }, [load])
 
   // Live: any activity refreshes the metrics and prepends to the feed.
@@ -25,6 +33,9 @@ export default function Dashboard() {
     onActivity: (m) => { setFeed((f) => [m.message, ...f].slice(0, 12)); load() },
     onNotification: () => load(),
   })
+
+  // A basic user has no dashboard — send them to their room.
+  if (isUser) return <Navigate to="/my-room" replace />
 
   return (
     <div>

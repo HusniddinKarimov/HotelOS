@@ -29,6 +29,9 @@ public class Reservation : BaseEntity
 
     public ReservationStatus Status { get; set; } = ReservationStatus.Pending;
 
+    /// <summary>The auth user who self-booked this stay (guest self-service), if any.</summary>
+    public Guid? BookedByUserId { get; set; }
+
     public Bill? Bill { get; set; }
 
     /// <summary>Number of nights (minimum 1).</summary>

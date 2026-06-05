@@ -6,11 +6,18 @@ import { useRealtime } from '../lib/useRealtime'
 import { api } from '../lib/api'
 import { useToast } from './ui'
 
+// Every staff role (i.e. everyone except a basic User).
+const STAFF = [
+  ROLES.Administrator, ROLES.HotelManager, ROLES.Receptionist, ROLES.Housekeeping,
+  ROLES.KitchenStaff, ROLES.RoomServiceStaff, ROLES.MaintenanceStaff,
+]
+
 const NAV: { to: string; label: string; icon: string; roles?: string[] }[] = [
-  { to: '/', label: 'Dashboard', icon: '📊' },
+  { to: '/my-room', label: 'My Room', icon: '🛏️', roles: [ROLES.User] },
+  { to: '/', label: 'Dashboard', icon: '📊', roles: STAFF },
   { to: '/reservations', label: 'Reservations', icon: '📅', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.Receptionist] },
   { to: '/guests', label: 'Guests', icon: '🧑', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.Receptionist] },
-  { to: '/rooms', label: 'Rooms', icon: '🚪' },
+  { to: '/rooms', label: 'Rooms', icon: '🚪', roles: STAFF },
   { to: '/housekeeping', label: 'Housekeeping', icon: '🧹', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.Housekeeping] },
   { to: '/kitchen', label: 'Kitchen', icon: '🍳', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.KitchenStaff] },
   { to: '/roomservice', label: 'Room Service', icon: '🛎️', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.RoomServiceStaff, ROLES.Receptionist] },
