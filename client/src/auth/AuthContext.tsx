@@ -6,6 +6,7 @@ interface AuthState {
   user: AuthUser | null
   login: (username: string, password: string) => Promise<void>
   logout: () => void
+  signup: (data: { username: string; email: string; password: string; fullName: string }) => Promise<void>
   hasRole: (...roles: string[]) => boolean
 }
 
@@ -27,11 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user])
 
-  async function login(username: string, password: string) {
-    const { data } = await api.post<AuthResponse>('/api/auth/login', { username, password })
+  function applyAuth(data: AuthResponse) {
     tokens.set(data.accessToken, data.refreshToken)
     localStorage.setItem(USER_KEY, JSON.stringify(data.user))
     setUser(data.user)
+  }
+
+  async function login(username: string, password: string) {
+    const { data } = await api.post<AuthResponse>('/api/auth/login', { username, password })
+    applyAuth(data)
+  }
+
+  async function signup(payload: { username: string; email: string; password: string; fullName: string }) {
+    const { data } = await api.post<AuthResponse>('/api/auth/signup', payload)
+    applyAuth(data)
   }
 
   function logout() {
@@ -43,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (...roles: string[]) => !!user && roles.includes(user.role)
 
-  return <AuthContext.Provider value={{ user, login, logout, hasRole }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, login, logout, signup, hasRole }}>{children}</AuthContext.Provider>
 }
 
 export const useAuth = () => useContext(AuthContext)

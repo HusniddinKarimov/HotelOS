@@ -4,6 +4,7 @@ import ProtectedRoute from './auth/ProtectedRoute'
 import { ToastProvider } from './components/ui'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import SignUp from './pages/SignUp'
 import Dashboard from './pages/Dashboard'
 import Guests from './pages/Guests'
 import Reservations from './pages/Reservations'
@@ -25,6 +26,7 @@ export default function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<SignUp />} />
             <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/my-room" element={<MyRoom />} />

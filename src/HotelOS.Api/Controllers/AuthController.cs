@@ -7,6 +7,12 @@ namespace HotelOS.Api.Controllers;
 /// <summary>Authentication: login, token refresh and the current-user lookup.</summary>
 public class AuthController : ApiControllerBase
 {
+    /// <summary>Public self-registration; creates a basic user and signs them in.</summary>
+    [AllowAnonymous]
+    [HttpPost("signup")]
+    public async Task<ActionResult<AuthResponse>> SignUp([FromBody] SignUpCommand command, CancellationToken ct)
+        => Ok(await Mediator.Send(command, ct));
+
     /// <summary>Authenticate with username + password; returns access and refresh tokens.</summary>
     [AllowAnonymous]
     [HttpPost("login")]
