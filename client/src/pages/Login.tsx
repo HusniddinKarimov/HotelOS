@@ -4,7 +4,9 @@ import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../lib/api'
 
 const DEMO = [
-  ['admin', 'Admin@123'],
+  ['admin', 'Admin@123'], ['manager', 'Password@123'], ['reception', 'Password@123'],
+  ['housekeeping', 'Password@123'], ['kitchen', 'Password@123'], ['roomservice', 'Password@123'],
+  ['maintenance', 'Password@123'],
 ]
 
 export default function Login() {
@@ -50,7 +52,7 @@ export default function Login() {
           New here? <Link to="/signup" className="font-semibold text-indigo-600 hover:underline">Create an account</Link>
         </p>
         <div className="mt-6 text-xs text-slate-400">
-          <p className="mb-1 font-semibold">Admin demo (click to fill):</p>
+          <p className="mb-1 font-semibold">Staff demo accounts (click to fill):</p>
           <div className="flex flex-wrap gap-1">
             {DEMO.map(([u, p]) => (
               <button key={u} onClick={() => { setUsername(u); setPassword(p) }}

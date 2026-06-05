@@ -46,12 +46,17 @@ public static class DbSeeder
     {
         var roles = await db.Roles.ToDictionaryAsync(r => r.Name, r => r.Id, ct);
 
-        // Only the administrator is seeded. Customers self-register (sign up) as
-        // basic Users; staff accounts are created by an administrator.
+        // Staff accounts are seeded; customers self-register (sign up) as basic Users.
         // (username, fullName, role, password)
         var users = new (string U, string Full, string Role, string Pwd)[]
         {
             ("admin", "System Administrator", RoleNames.Administrator, "Admin@123"),
+            ("manager", "Hotel Manager", RoleNames.HotelManager, "Password@123"),
+            ("reception", "Front Desk", RoleNames.Receptionist, "Password@123"),
+            ("housekeeping", "House Keeper", RoleNames.Housekeeping, "Password@123"),
+            ("kitchen", "Kitchen Staff", RoleNames.KitchenStaff, "Password@123"),
+            ("roomservice", "Room Service", RoleNames.RoomServiceStaff, "Password@123"),
+            ("maintenance", "Technician", RoleNames.MaintenanceStaff, "Password@123"),
         };
 
         foreach (var (u, full, role, pwd) in users)
