@@ -1,5 +1,6 @@
 using HotelOS.Application.Common;
 using HotelOS.Application.Features.Maintenance;
+using HotelOS.Application.Features.Users;
 using HotelOS.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +14,11 @@ public class MaintenanceController : ApiControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<MaintenanceDto>>> Get([FromQuery] GetMaintenanceQuery query, CancellationToken ct)
         => Ok(await Mediator.Send(query, ct));
+
+    /// <summary>Technicians available to be assigned work.</summary>
+    [HttpGet("technicians")]
+    public async Task<ActionResult<IReadOnlyList<TechnicianDto>>> Technicians(CancellationToken ct)
+        => Ok(await Mediator.Send(new GetTechniciansQuery(), ct));
 
     [HttpPost]
     public async Task<ActionResult<MaintenanceDto>> Create([FromBody] CreateMaintenanceRequestCommand command, CancellationToken ct)

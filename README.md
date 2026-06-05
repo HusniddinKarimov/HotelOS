@@ -90,6 +90,21 @@ curl -s http://localhost:5080/api/rooms -H "Authorization: Bearer $TOKEN"
 curl -s http://localhost:5080/api/dashboard -H "Authorization: Bearer $TOKEN"
 ```
 
+## Frontend (React + TypeScript + Tailwind)
+
+```bash
+cd client
+npm install
+npm run dev        # http://localhost:5173  (proxies /api and /hubs to :5080)
+```
+
+Start the **backend first**, then the frontend. Log in with any seeded account
+(e.g. `admin` / `Admin@123`). The sidebar is filtered by the signed-in role.
+
+Pages: Dashboard (live via SignalR), Reservations (create / check-in / check-out /
+pay), Guests, Rooms, Housekeeping, Kitchen, Room Service, Maintenance, Billing,
+Reports, Users, Notifications.
+
 ## EF Core migrations
 
 ```bash
