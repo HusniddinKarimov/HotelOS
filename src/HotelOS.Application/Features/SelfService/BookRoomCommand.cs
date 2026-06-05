@@ -1,3 +1,4 @@
+using FluentValidation;
 using HotelOS.Application.Abstractions;
 using HotelOS.Application.Common;
 using HotelOS.Domain.Entities;
@@ -8,11 +9,33 @@ using Microsoft.EntityFrameworkCore;
 namespace HotelOS.Application.Features.SelfService;
 
 /// <summary>
-/// The signed-in user books a specific available room for themselves (1 night),
-/// which immediately checks them in. Fails if they already hold a room or the
-/// room is no longer Clean.
+/// The signed-in user books a specific available room for a date range, paying
+/// by card at the time of booking. Price = nights × nightly rate. The card is
+/// never stored in full — only the last four digits are kept on the payment.
 /// </summary>
-public record BookRoomCommand(Guid RoomId) : IRequest<MyRoomDto>;
+public record BookRoomCommand(
+    Guid RoomId,
+    DateTime CheckInDate,
+    DateTime CheckOutDate,
+    string FullName,
+    string CardNumber) : IRequest<MyRoomDto>;
+
+public class BookRoomCommandValidator : AbstractValidator<BookRoomCommand>
+{
+    public BookRoomCommandValidator()
+    {
+        RuleFor(x => x.RoomId).NotEmpty();
+        RuleFor(x => x.FullName).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.CheckInDate).LessThan(x => x.CheckOutDate)
+            .WithMessage("Check-out must be after check-in.");
+        RuleFor(x => x.CheckOutDate)
+            .Must((c, _) => (c.CheckOutDate.Date - c.CheckInDate.Date).Days <= 30)
+            .WithMessage("Stays longer than 30 nights are not allowed.");
+        RuleFor(x => x.CardNumber)
+            .Must(card => System.Text.RegularExpressions.Regex.IsMatch(card?.Replace(" ", "") ?? "", @"^\d{12,19}$"))
+            .WithMessage("Enter a valid card number (12–19 digits).");
+    }
+}
 
 public class BookRoomCommandHandler : IRequestHandler<BookRoomCommand, MyRoomDto>
 {
@@ -44,20 +67,25 @@ public class BookRoomCommandHandler : IRequestHandler<BookRoomCommand, MyRoomDto
         if (room.Status != RoomStatus.Clean)
             throw new ConflictException($"Room {room.Number} is no longer available.");
 
-        // Identify the user so we can attach a guest record.
         var user = await _uow.Repository<User>().GetByIdAsync(userId, ct)
             ?? throw new NotFoundException("User", userId);
 
-        // Find-or-create the guest record for this user (matched by email).
+        // Find-or-create the guest record for this user; use the name they entered.
         var guests = _uow.Repository<Guest>();
         var guest = await guests.FirstOrDefaultAsync(g => g.Email == user.Email, ct);
         if (guest is null)
         {
-            guest = new Guest { FullName = user.FullName, Email = user.Email, Phone = "—" };
+            guest = new Guest { FullName = request.FullName.Trim(), Email = user.Email, Phone = "—" };
             await guests.AddAsync(guest, ct);
         }
+        else
+        {
+            guest.FullName = request.FullName.Trim();
+        }
 
-        var now = DateTime.UtcNow;
+        var nights = Math.Max(1, (request.CheckOutDate.Date - request.CheckInDate.Date).Days);
+        var total = room.RoomType.BaseRate * nights;
+
         var reservation = new Reservation
         {
             ReferenceCode = "RSV-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant(),
@@ -65,25 +93,36 @@ public class BookRoomCommandHandler : IRequestHandler<BookRoomCommand, MyRoomDto
             Guest = guest,
             RoomTypeId = room.RoomTypeId,
             RoomId = room.Id,
-            CheckInDate = now,
-            CheckOutDate = now.AddDays(1),
+            CheckInDate = request.CheckInDate,
+            CheckOutDate = request.CheckOutDate,
             Status = ReservationStatus.CheckedIn,
-            ActualCheckInAt = now,
+            ActualCheckInAt = DateTime.UtcNow,
             BookedByUserId = userId,
         };
 
-        // Occupy the room and open the bill.
         room.Status = RoomStatus.Occupied;
         room.CurrentGuestId = guest.Id;
 
-        var bill = new Bill { ReservationId = reservation.Id, GuestId = guest.Id, Status = BillStatus.Open };
+        // Open the bill with the room charge for the whole stay.
+        var bill = new Bill { ReservationId = reservation.Id, GuestId = guest.Id, Status = BillStatus.Paid };
         bill.Items.Add(new BillItem
         {
             BillId = bill.Id,
-            Description = $"Room {room.Number} ({room.RoomType.Name}) — 1 night",
+            Description = $"Room {room.Number} ({room.RoomType.Name}) — {nights} night(s) @ £{room.RoomType.BaseRate}",
             Type = BillItemType.Room,
-            Amount = room.RoomType.BaseRate,
-            Quantity = 1,
+            Amount = total,
+            Quantity = nights,
+        });
+        // Record the card payment (masked — never store the full number).
+        var digits = request.CardNumber.Replace(" ", "");
+        bill.Payments.Add(new Payment
+        {
+            BillId = bill.Id,
+            Method = PaymentMethod.Card,
+            Status = PaymentStatus.Completed,
+            Amount = total,
+            Reference = $"Card ****{digits[^4..]}",
+            PaidAt = DateTime.UtcNow,
         });
         reservation.Bill = bill;
 
@@ -91,10 +130,12 @@ public class BookRoomCommandHandler : IRequestHandler<BookRoomCommand, MyRoomDto
         await _uow.Repository<Bill>().AddAsync(bill, ct);
         await _uow.SaveChangesAsync(ct);
 
-        await _realtime.NotifyAsync(NotificationType.CheckIn, $"{user.FullName} booked room {room.Number}.", ct: ct);
-        await _realtime.ActivityAsync($"Room {room.Number} self-booked and occupied.", ct);
+        await _realtime.NotifyAsync(NotificationType.PaymentCompleted,
+            $"{guest.FullName} booked room {room.Number} ({nights} night(s), £{total:0.00}).", ct: ct);
+        await _realtime.ActivityAsync($"Room {room.Number} booked & paid — now occupied.", ct);
 
         return new MyRoomDto(reservation.Id, room.Number, room.RoomType.Name, room.Floor,
-            room.Status.ToString(), reservation.CheckInDate, reservation.CheckOutDate, bill.Id, bill.Total);
+            room.Status.ToString(), reservation.CheckInDate, reservation.CheckOutDate, nights,
+            bill.Id, bill.Total, Paid: true);
     }
 }

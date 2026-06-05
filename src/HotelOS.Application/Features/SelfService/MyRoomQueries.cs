@@ -44,8 +44,10 @@ public class GetMyRoomQueryHandler : IRequestHandler<GetMyRoomQuery, MyRoomDto?>
             reservation.Room.Status.ToString(),
             reservation.CheckInDate,
             reservation.CheckOutDate,
+            reservation.Nights,
             reservation.Bill?.Id,
-            reservation.Bill?.Total ?? 0m);
+            reservation.Bill?.Total ?? 0m,
+            reservation.Bill?.Status == BillStatus.Paid);
     }
 }
 

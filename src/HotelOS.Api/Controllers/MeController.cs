@@ -23,15 +23,13 @@ public class MeController : ApiControllerBase
     public async Task<ActionResult<IReadOnlyList<AvailableRoomDto>>> Available(CancellationToken ct)
         => Ok(await Mediator.Send(new GetAvailableRoomsQuery(), ct));
 
-    /// <summary>Book a specific available room for the current user (checks them in).</summary>
+    /// <summary>Book a specific available room for a date range and pay by card.</summary>
     [HttpPost("book")]
-    public async Task<ActionResult<MyRoomDto>> Book([FromBody] BookRoomBody body, CancellationToken ct)
-        => Ok(await Mediator.Send(new BookRoomCommand(body.RoomId), ct));
+    public async Task<ActionResult<MyRoomDto>> Book([FromBody] BookRoomCommand command, CancellationToken ct)
+        => Ok(await Mediator.Send(command, ct));
 
     /// <summary>Leave the room — frees it to Dirty automatically.</summary>
     [HttpPost("leave")]
     public async Task<ActionResult<BillDto>> Leave(CancellationToken ct)
         => Ok(await Mediator.Send(new LeaveRoomCommand(), ct));
 }
-
-public record BookRoomBody(Guid RoomId);

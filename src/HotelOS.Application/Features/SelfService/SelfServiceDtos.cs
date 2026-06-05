@@ -9,8 +9,10 @@ public record MyRoomDto(
     string Status,
     DateTime CheckInDate,
     DateTime CheckOutDate,
+    int Nights,
     Guid? BillId,
-    decimal Total);
+    decimal Total,
+    bool Paid);
 
 /// <summary>A room the user is allowed to book (currently Clean).</summary>
 public record AvailableRoomDto(Guid RoomId, int Number, int Floor, string Type, decimal NightlyRate);
