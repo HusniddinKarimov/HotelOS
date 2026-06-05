@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api, errorMessage } from '../lib/api'
 import type { Paged, Guest } from '../lib/types'
+import { ROLES } from '../lib/types'
+import { useAuth } from '../auth/AuthContext'
 import { PageHeader, Modal, StatusPill, useToast } from '../components/ui'
 
 interface GuestDetail extends Guest {
@@ -9,6 +11,8 @@ interface GuestDetail extends Guest {
 
 export default function Guests() {
   const toast = useToast()
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole(ROLES.Administrator)
   const [guests, setGuests] = useState<Guest[]>([])
   const [search, setSearch] = useState('')
   const [adding, setAdding] = useState(false)
@@ -30,6 +34,12 @@ export default function Guests() {
     } catch (err) { toast(errorMessage(err), 'err') }
   }
 
+  async function remove(g: Guest) {
+    if (!confirm(`Delete guest "${g.fullName}"? This cannot be undone.`)) return
+    try { await api.delete(`/api/guests/${g.id}`); toast('Guest deleted'); load() }
+    catch (err) { toast(errorMessage(err), 'err') }
+  }
+
   return (
     <div>
       <PageHeader title="Guests" subtitle="Register and search guests"
@@ -49,6 +59,7 @@ export default function Guests() {
                 <td className="td">{g.nationality ?? '—'}</td>
                 <td className="td text-right">
                   <button className="text-indigo-600 hover:underline" onClick={() => api.get(`/api/guests/${g.id}`).then(({ data }) => setDetail(data))}>History</button>
+                  {isAdmin && <button className="ml-3 text-rose-600 hover:underline" onClick={() => remove(g)}>Delete</button>}
                 </td>
               </tr>
             ))}

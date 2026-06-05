@@ -28,6 +28,15 @@ public class GuestsController : ApiControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<GuestDto>> Update(Guid id, [FromBody] UpdateGuestBody body, CancellationToken ct)
         => Ok(await Mediator.Send(new UpdateGuestCommand(id, body.FullName, body.Email, body.Phone, body.Nationality, body.PassportNumber), ct));
+
+    /// <summary>Delete a guest. Administrator only; blocked if the guest has history.</summary>
+    [Authorize(Roles = RoleNames.Administrator)]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        await Mediator.Send(new DeleteGuestCommand(id), ct);
+        return NoContent();
+    }
 }
 
 public record UpdateGuestBody(string FullName, string Email, string Phone, string? Nationality, string? PassportNumber);
