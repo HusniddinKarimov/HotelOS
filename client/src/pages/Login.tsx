@@ -22,7 +22,7 @@ export default function Login() {
     setBusy(true); setError('')
     try {
       await login(username, password)
-      navigate('/')
+      navigate('/dashboard')
     } catch (err) {
       setError(errorMessage(err))
     } finally { setBusy(false) }

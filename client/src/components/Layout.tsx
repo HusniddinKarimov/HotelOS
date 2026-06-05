@@ -14,7 +14,7 @@ const STAFF = [
 
 const NAV: { to: string; label: string; icon: string; roles?: string[] }[] = [
   { to: '/my-room', label: 'My Room', icon: '🛏️', roles: [ROLES.User] },
-  { to: '/', label: 'Dashboard', icon: '📊', roles: STAFF },
+  { to: '/dashboard', label: 'Dashboard', icon: '📊', roles: STAFF },
   { to: '/reservations', label: 'Reservations', icon: '📅', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.Receptionist] },
   { to: '/guests', label: 'Guests', icon: '🧑', roles: [ROLES.Administrator, ROLES.HotelManager, ROLES.Receptionist] },
   { to: '/rooms', label: 'Rooms', icon: '🚪', roles: STAFF },
@@ -49,7 +49,7 @@ export default function Layout() {
         <div className="px-5 py-5 text-lg font-bold text-white">🏨 HotelOS</div>
         <nav className="flex-1 space-y-1 px-3">
           {items.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.to === '/'}
+            <NavLink key={n.to} to={n.to} end={n.to === '/dashboard'}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800'}`}>
               <span>{n.icon}</span> {n.label}
