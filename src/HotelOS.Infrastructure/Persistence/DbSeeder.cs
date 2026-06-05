@@ -55,7 +55,8 @@ public static class DbSeeder
             ("housekeeping", "House Keeper", RoleNames.Housekeeping, "Password@123"),
             ("kitchen", "Kitchen Staff", RoleNames.KitchenStaff, "Password@123"),
             ("roomservice", "Room Service", RoleNames.RoomServiceStaff, "Password@123"),
-            ("maintenance", "Technician", RoleNames.MaintenanceStaff, "Password@123")
+            ("maintenance", "Technician", RoleNames.MaintenanceStaff, "Password@123"),
+            ("user", "Basic User", RoleNames.User, "Password@123")
         };
 
         foreach (var (u, full, role, pwd) in users)

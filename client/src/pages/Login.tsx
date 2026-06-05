@@ -6,7 +6,7 @@ import { errorMessage } from '../lib/api'
 const DEMO = [
   ['admin', 'Admin@123'], ['manager', 'Password@123'], ['reception', 'Password@123'],
   ['housekeeping', 'Password@123'], ['kitchen', 'Password@123'], ['roomservice', 'Password@123'],
-  ['maintenance', 'Password@123'],
+  ['maintenance', 'Password@123'], ['user', 'Password@123'],
 ]
 
 export default function Login() {

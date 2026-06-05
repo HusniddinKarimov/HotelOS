@@ -51,5 +51,5 @@ export interface Dashboard {
 export const ROLES = {
   Administrator: 'Administrator', HotelManager: 'HotelManager', Receptionist: 'Receptionist',
   Housekeeping: 'Housekeeping', KitchenStaff: 'KitchenStaff', RoomServiceStaff: 'RoomServiceStaff',
-  MaintenanceStaff: 'MaintenanceStaff',
+  MaintenanceStaff: 'MaintenanceStaff', User: 'User',
 } as const

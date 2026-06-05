@@ -26,9 +26,12 @@ public static class RoleNames
     public const string RoomServiceStaff = "RoomServiceStaff";
     public const string MaintenanceStaff = "MaintenanceStaff";
 
+    /// <summary>Basic user: can sign in and view, but performs no staff operations.</summary>
+    public const string User = "User";
+
     public static readonly string[] All =
     {
         Administrator, HotelManager, Receptionist, Housekeeping,
-        KitchenStaff, RoomServiceStaff, MaintenanceStaff
+        KitchenStaff, RoomServiceStaff, MaintenanceStaff, User
     };
 }
