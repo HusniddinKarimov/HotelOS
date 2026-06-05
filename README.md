@@ -1,5 +1,17 @@
 # HotelOS — Hotel Management System
 
+> **📌 For the BTEC Unit 4 assignment, submit the `submission-microservices` branch.**
+> That branch is the brief-compliant version (4 independent services + a message broker
+> + WebSocket dashboard, all 8 test scenarios verified) — see its `BRIEF-COMPLIANCE.md`.
+> This `main` branch is a separate, more production-style **modular-monolith** rebuild
+> (EF Core / PostgreSQL / JWT-RBAC / React) and does **not** use the microservices
+> architecture the brief requires.
+>
+> ```bash
+> git checkout submission-microservices    # the assignment submission
+> git checkout main                        # this enterprise rebuild
+> ```
+
 A modular-monolith Hotel Management System built with **ASP.NET Core (.NET 10)** following
 **Clean Architecture**, with **Entity Framework Core + PostgreSQL**, **JWT auth + refresh
 tokens + RBAC**, **CQRS (MediatR)**, **FluentValidation**, **SignalR** realtime, and **Serilog**.
