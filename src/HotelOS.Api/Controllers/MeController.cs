@@ -20,17 +20,32 @@ public class MeController : ApiControllerBase
         return room is null ? NoContent() : Ok(room);
     }
 
-    /// <summary>Rooms the user can book right now.</summary>
+    /// <summary>Search rooms available for a date range.</summary>
     [HttpGet("available-rooms")]
-    public async Task<ActionResult<IReadOnlyList<AvailableRoomDto>>> Available(CancellationToken ct)
-        => Ok(await Mediator.Send(new GetAvailableRoomsQuery(), ct));
+    public async Task<ActionResult<IReadOnlyList<AvailableRoomDto>>> Available([FromQuery] DateTime checkIn, [FromQuery] DateTime checkOut, CancellationToken ct)
+        => Ok(await Mediator.Send(new GetAvailableRoomsQuery(checkIn, checkOut), ct));
 
-    /// <summary>Book a specific available room for a date range and pay by card.</summary>
+    /// <summary>Book a room for a date range and pay by card (creates a confirmed booking).</summary>
     [HttpPost("book")]
-    public async Task<ActionResult<MyRoomDto>> Book([FromBody] BookRoomCommand command, CancellationToken ct)
+    public async Task<ActionResult<BookingDto>> Book([FromBody] BookRoomCommand command, CancellationToken ct)
         => Ok(await Mediator.Send(command, ct));
 
-    /// <summary>Leave the room — frees it to Dirty automatically.</summary>
+    /// <summary>All of the user's bookings (upcoming, current and past).</summary>
+    [HttpGet("bookings")]
+    public async Task<ActionResult<IReadOnlyList<BookingDto>>> Bookings(CancellationToken ct)
+        => Ok(await Mediator.Send(new GetMyBookingsQuery(), ct));
+
+    /// <summary>Check into one of the user's confirmed bookings.</summary>
+    [HttpPost("bookings/{id:guid}/checkin")]
+    public async Task<ActionResult<MyRoomDto>> CheckIn(Guid id, CancellationToken ct)
+        => Ok(await Mediator.Send(new CheckInBookingCommand(id), ct));
+
+    /// <summary>Cancel a confirmed (not-yet-arrived) booking.</summary>
+    [HttpPost("bookings/{id:guid}/cancel")]
+    public async Task<ActionResult<BookingDto>> Cancel(Guid id, CancellationToken ct)
+        => Ok(await Mediator.Send(new CancelBookingCommand(id), ct));
+
+    /// <summary>Leave the current room — frees it to Dirty automatically.</summary>
     [HttpPost("leave")]
     public async Task<ActionResult<BillDto>> Leave(CancellationToken ct)
         => Ok(await Mediator.Send(new LeaveRoomCommand(), ct));
